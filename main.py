@@ -38,9 +38,9 @@
 #
 # Побеждает тот, кто быстрее всех разгромит корабли противника.
 
-from battleship import Board, Ship
+from battleship import *
 
 if __name__ == '__main__':
-    gamer=Board()
-    gamer.printboard()
+    new_game=Game()
+    new_game.start()
 
