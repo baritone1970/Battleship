@@ -1,9 +1,9 @@
 # Сначала займёмся исключениями
 # Исключения, связанные с созданием и размещением корабля
 class ShipException(Exception):
-    def __init__(self, text, num):
+    def __init__(self, text, data):
         self.text = text
-        self.num = num
+        self.data = data
 
 
 class ShotException(Exception):
@@ -108,7 +108,7 @@ class Board:
             for c in range(6):
                 self.free_dots.add((r, c))  # self.map[r][c]
         self.ship_list = []  # список кораблей
-        for s in [1, 1]:  # список размеров размещаемых кораблей по порядку от 3 до 1
+        for s in [3, 2, 2, 1, 1, 1, 1]:  # список размеров размещаемых кораблей по порядку от 3 до 1
             self.ship_list.append(Ship(s))
 
     def coord_in_map(self, place):
@@ -120,24 +120,54 @@ class Board:
         r = int(place[1]) - 1
         return r, c  # self.map[r][c]
 
+    def clean_around(self, r, c):  # Удаляем из свободных точку под кораблём и воокруг него
+        for dr in [-1, 0, 1]:
+            for dc in [-1, 0, 1]:
+                self.free_dots.discard((r + dr, c + dc))
+
     def place_ship(self, ship, place, dir):
         # Положение вводится строкой, буква и цифра, направление - символами 'U', 'R', 'D', 'L'
         r, c = place
-        self.map[r][c].set_ship(ship)  # пока никаких проверок.
-        for dr in [-1, 0, 1]:       # Удаляем из свободных точку под кораблём и воокруг него
-            for dc in [-1, 0, 1]:
-                self.free_dots.discard((r + dr, c + dc))
-        print(self.free_dots)
+        shipdots = []  # Здесь будут точки
+        if dir in {'U', 'u'}:
+            for d in range(ship.size):
+                shipdots.append((r + d, c))
+        elif dir in {'R', 'r'}:
+            for d in range(ship.size):
+                shipdots.append((r, c + d))
+        elif dir in {'D', 'd'}:
+            for d in range(ship.size):
+                shipdots.append((r - d, c))
+        elif dir in {'L', 'l'}:
+            for d in range(ship.size):
+                shipdots.append((r, c - d))
+        else:
+            raise ShipException("Invalid ship direction error", place)
+        # Если исключение выхода из границ, то корабль размещать не надо!
+        try:
+            for r, c in shipdots:
+                # Сначала провоцируем исключение по границам поля и проверяем доступность поля для размещения корабля
+                if self.map[r][c].is_busy() or not ((r, c) in self.free_dots):
+                    raise ShipException("Invalid ship place error", place)  #
+        except IndexError:
+            raise ShipException("Invalid ship place error", place)
+        else:  # Ура, все точки корабля на допустимом месте!
+            for r, c in shipdots:
+                self.map[r][c].set_ship(ship)  #
+                self.clean_around(r, c)  # Удаляем из числа свободных точку под кораблём и воокруг него
 
     def place_all_ships(self, auto=False):
         for ship in self.ship_list:  # список размеров размещаемых кораблей по порядку от 3 до 1
             done = False
             while not done:
                 try:
-                    place = self.coord_in_map(input('Введите координаты корабля: '))
-                    self.place_ship(ship, place, 'U')
+                    us = input('Введите начальную координату и направление '+str(ship.size)+'-клеточного корабля: ')
+                    place = self.coord_in_map(us[:2])  # первые два символа - координата
+                    self.place_ship(ship, place, us[2])  # третий - направление
+                except IndexError:
+                    print('Здесь разместить не получится!')
                 except ShipException:
-                    print('Сюда не помещается')
+                    print('Здесь разместить не получится!')
                 else:
                     self.printboard()
                     done = True
@@ -160,13 +190,13 @@ class Player:
 
 
 class Ai(Player):
-    # Класс игровой механики игрока, переопределён ввод точек атаки
+    # Класс игровой механики компьютера, переопределён ввод точек атаки
     def ask(self):
         pass
 
 
 class User(Player):
-    # Класс игровой механики компьютера, переопределён ввод точек атаки
+    # Класс игровой механики игрока, переопределён ввод точек атаки
     def ask(self):
         answer = input('Введите номер поля (например, a2): ')
 
@@ -196,14 +226,19 @@ class Game:
         print('''Привет, игрок!
 Сейчас мы сыграем в "Морской Бой". Слева будет Ваша доска, справа - доска противника.''')
         self.printboards()
-        print('''Сейчас мы расставим ваши корабли. Координаты вводятся как в шахматах: 
-сначала - буква, потом - цифра, без пробела. Например, "e2", "e4" :-)''')
-        self.user_board.place_all_ships()
-        # self.ai_board.map[2][4].hit=True
-        self.printboards()
+        print('''Координаты вводятся как в шахматах: сначала - буква, потом - цифра, без пробела. 
+Например, "e2", "E4" :-)
+Сейчас мы расставим ваши корабли. Место указывается так: 
+Сначала координата кормы, и сразу без пробела - буква направления, "U", "R", "L" или "D".
+Например: "e2u", "E4D". ''')
 
     def loop(self):  # Это цикл хода игры
-        pass
+        try:
+            self.user_board.place_all_ships()
+            # self.ai_board.map[2][4].hit=True
+            self.printboards()
+        except:
+            print('\nЧто-то не получилось у нас. Попробуем в другой раз?\n  Удачи во всех делах и безделье!')
 
     def start(self):
         self.greet()
