@@ -2,6 +2,9 @@
 # Dot - точки игрового поля, отмечают наличие корабля, атаку, отрисовку....
 # Ship - размеры и число повреждений корабля
 # Board - расстановка и местоположение кораблей, перечень кораблей, отрисовка поля
+# User - класс действий игрока
+# AI - класс действий компьютера
+# Game - класс хода игры
 
 import random
 
@@ -209,7 +212,7 @@ class Player:
         pass
 
 
-class Ai(Player):
+class AI(Player):
     # Класс игровой механики компьютера, переопределён ввод точек атаки
     def ask(self):
         pass
@@ -226,7 +229,7 @@ class Game:
     def __init__(self):
         self.user = User()  # Игровая механика пользователя
         self.user_board = Board()  # Доска пользователя
-        self.ai = Ai()  # Игровая механика компьютера
+        self.ai = AI()  # Игровая механика компьютера
         self.ai_board = Board(hidenboard=True)
         # self.ai_board.map[2][4].ship=Ship(1)    #TODO
 
@@ -258,8 +261,8 @@ class Game:
             # self.ai_board.place_all_ships()#auto=True
             self.printboards()
         except BoardException as e:
-            print(e.text)
             self.printboards()
+            print(e.text)
         except:
             print('\nЧто-то не получилось у нас. Попробуем в другой раз?\n  Удачи во всех делах и безделье!')
 
