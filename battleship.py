@@ -1,3 +1,10 @@
+# Классы для игры в морской бой
+# Dot - точки игрового поля, отмечают наличие корабля, атаку, отрисовку....
+# Ship - размеры и число повреждений корабля
+# Board - расстановка и местоположение кораблей, перечень кораблей, отрисовка поля
+
+import random
+
 # Сначала займёмся исключениями
 # Исключения, связанные с созданием и размещением корабля
 class ShipException(Exception):
@@ -5,6 +12,9 @@ class ShipException(Exception):
         self.text = text
         self.data = data
 
+class BoardException(Exception):
+    def __init__(self, text):
+        self.text = text
 
 class ShotException(Exception):
     def __init__(self, text):
@@ -95,6 +105,7 @@ class Board:
     # Доска вмещает 1 корабль на 3 клетки, 2 корабля на 2 клетки, 4 корабля на одну клетку.
 
     def __init__(self, hidenboard=False):
+        random.seed()
         self.map = []  # Будет содержать карту точек кораблей, список строк (списков точек).
         # Номер элемента строки (колонка c) вводится буквой, номер строки r - цифрой
         # Помни, студент: в координате map[r][c] сначала номер строки, потом - номер колонки
@@ -103,13 +114,15 @@ class Board:
                 self.map.append([DotOnHidenBoard() for d in range(6)])
             else:
                 self.map.append([Dot() for d in range(6)])
-        self.free_dots = set()  # Множество свободных точек, используется лишь для ускорения размещения кораблей
-        for r in range(6):  # Заполняем множество свободных для размещения кораблей точек [0-5][0-5]
+        self.free_dots = set()  # Множество свободных для размещения кораблей точек [0-5][0-5]
+        for r in range(6):
             for c in range(6):
                 self.free_dots.add((r, c))  # self.map[r][c]
         self.ship_list = []  # список кораблей
         for s in [3, 2, 2, 1, 1, 1, 1]:  # список размеров размещаемых кораблей по порядку от 3 до 1
             self.ship_list.append(Ship(s))
+        self.error_placement_count=0    # Счётчик числа ошибок размещения, чтобы не зациклиться
+
 
     def coord_in_map(self, place):
         # Положение вводится строкой, буква (колонка c) и цифра (ряд r)
@@ -126,7 +139,7 @@ class Board:
                 self.free_dots.discard((r + dr, c + dc))
 
     def place_ship(self, ship, place, dir):
-        # Положение вводится строкой, буква и цифра, направление - символами 'U', 'R', 'D', 'L'
+        # Положение вводится кортежем (строка,столбец), направление - символами 'U', 'R', 'D', 'L'
         r, c = place
         shipdots = []  # Здесь будут точки
         if dir in {'U', 'u'}:
@@ -148,26 +161,33 @@ class Board:
             for r, c in shipdots:
                 # Сначала провоцируем исключение по границам поля и проверяем доступность поля для размещения корабля
                 if self.map[r][c].is_busy() or not ((r, c) in self.free_dots):
-                    raise ShipException("Invalid ship place error", place)  #
+                    raise ShipException("Здесь корабль разместить не получится!", place)  #
         except IndexError:
-            raise ShipException("Invalid ship place error", place)
+            raise ShipException("Попали на точку за пределами поля!", place)
         else:  # Ура, все точки корабля на допустимом месте!
             for r, c in shipdots:
                 self.map[r][c].set_ship(ship)  #
                 self.clean_around(r, c)  # Удаляем из числа свободных точку под кораблём и воокруг него
 
     def place_all_ships(self, auto=False):
-        for ship in self.ship_list:  # список размеров размещаемых кораблей по порядку от 3 до 1
+        for ship in self.ship_list:  # список размеров размещаемых кораблей по размеру от 3 до 1
             done = False
             while not done:
                 try:
-                    us = input('Введите начальную координату и направление '+str(ship.size)+'-клеточного корабля: ')
-                    place = self.coord_in_map(us[:2])  # первые два символа - координата
-                    self.place_ship(ship, place, us[2])  # третий - направление
-                except IndexError:
-                    print('Здесь разместить не получится!')
-                except ShipException:
-                    print('Здесь разместить не получится!')
+                    if auto:
+                        place=random.choice(tuple(self.free_dots))
+                        for dir in ['U', 'R', 'D', 'L']:
+                            self.place_ship(ship, place, dir)
+                    else:
+                        us = input('Введите начальную координату и направление '+str(ship.size)+'-клеточного корабля: ')
+                        place = self.coord_in_map(us[:2])  # первые два символа - координата
+                        self.place_ship(ship, place, us[2])  # третий - направление
+                except (IndexError, ShipException) as e:
+                    self.error_placement_count += 1
+                    if self.error_placement_count > 100:
+                        raise BoardException("Что-то не влезают все корабли, устал расставлять.")
+                    if True: #not auto:
+                        print(e.text, self.error_placement_count, 'ошибок!')
                 else:
                     self.printboard()
                     done = True
@@ -234,8 +254,11 @@ class Game:
 
     def loop(self):  # Это цикл хода игры
         try:
-            self.user_board.place_all_ships()
-            # self.ai_board.map[2][4].hit=True
+            self.user_board.place_all_ships(auto=True)#
+            # self.ai_board.place_all_ships()#auto=True
+            self.printboards()
+        except BoardException as e:
+            print(e.text)
             self.printboards()
         except:
             print('\nЧто-то не получилось у нас. Попробуем в другой раз?\n  Удачи во всех делах и безделье!')
