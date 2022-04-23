@@ -184,7 +184,10 @@ class Board:
                     else:
                         us = input('Введите начальную координату и направление '+str(ship.size)+'-клеточного корабля: ')
                         place = self.coord_in_map(us[:2])  # первые два символа - координата
-                        self.place_ship(ship, place, us[2])  # третий - направление
+                        if ship.size > 1:
+                            self.place_ship(ship, place, us[2])  # Третий символ ввода - направление
+                        else:
+                            self.place_ship(ship, place, 'U')  # Одноклеточному кораблю достаточно координаты
                 except (IndexError, ShipException) as e:
                     self.error_placement_count += 1
                     if self.error_placement_count > 100:
