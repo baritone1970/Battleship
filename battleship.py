@@ -22,7 +22,7 @@ class BoardException(Exception):
         self.text = text
 
 
-class ShotException(Exception):     # На случай повторного выстрела в точку
+class ShotException(Exception):  # На случай повторного выстрела в точку
     def __init__(self, text):
         self.text = text
 
@@ -47,9 +47,9 @@ class Dot:
             self.hit = True
             if not self.ship is None:
                 self.ship.set_hit()  # отмечаем попадания лишь если не было выстрела и там есть корабль
-                return True # Возврат события попадания в точку для пропуска хода оппонентом
+                return True  # Возврат события попадания в точку для пропуска хода оппонентом
         else:
-            raise ShotException("Два раза в одну точку стрелять нельзя") # Два раза в одну точку стрелять нельзя
+            raise ShotException("Два раза в одну точку стрелять нельзя")  # Два раза в одну точку стрелять нельзя
 
     def set_ship(self, ship):
         if self.is_busy():  # Если там уже корабль, положено вызвать исключение
@@ -97,7 +97,7 @@ class Board:
     # Доска вмещает 1 корабль на 3 клетки, 2 корабля на 2 клетки, 4 корабля на одну клетку.
 
     def __init__(self, hidenboard=False):
-        self.hidenboard=hidenboard
+        self.hidenboard = hidenboard
         self.reset_board(self.hidenboard)
 
     def reset_board(self, hidenboard=False):
@@ -115,7 +115,7 @@ class Board:
             self.ship_list.append(Ship(s, hidenboard))  # отмечаем видимость кораблей на доске
         self.error_placement_count = 0  # Счётчик числа ошибок размещения, чтобы не зациклиться
 
-    def coord_in_map(self, place): # трансляция буквенно-цифрового кода координаты в номер элемента map
+    def coord_in_map(self, place):  # трансляция буквенно-цифрового кода координаты в номер элемента map
         # Положение вводится строкой, буква (колонка c) и цифра (ряд r)
         # можно вводить строчные и заглавные буквы
         # Защита от неправильного ввода - внешним исключением.
@@ -177,7 +177,8 @@ class Board:
                                 dir = random.choice(['U', 'R', 'D', 'L'])
                                 self.place_ship(ship, place, dir)
                             else:
-                                answer = input('Введите начальную координату и направление ' + str(ship.size) + '-клеточного корабля: ')
+                                answer = input('Введите начальную координату и направление ' + str(
+                                    ship.size) + '-клеточного корабля: ')
                                 if answer == 'auto':
                                     auto = userauto = True
                                     raise BoardException("Хорошо, размещу Ваши корабли автоматически")
@@ -192,7 +193,8 @@ class Board:
                             self.error_placement_count += 1
                             if self.error_placement_count > 20:
                                 self.error_placement_count = 0
-                                raise BoardException("Что-то не получается расставить корабли, очищаю доску, начнём заново.")
+                                raise BoardException(
+                                    "Что-то не получается расставить корабли, очищаю доску, начнём заново.")
                         else:
                             if not auto:
                                 self.printboard()  # Только при ручной расстановке
@@ -210,11 +212,10 @@ class Board:
         print("     a   b   c   d   e   f")
 
     def lives_all(self):
-        lives=0
+        lives = 0
         for s in self.ship_list:
-            lives+=s.lives
+            lives += s.lives
         return lives
-
 
 
 ############
@@ -232,12 +233,12 @@ class Player:
     def ask(self):  #
         pass
 
-    def strike(self):   # Делается выстрел по координатам, полученным через ask()
-        done=False
+    def strike(self):  # Делается выстрел по координатам, полученным через ask()
+        done = False
         while not done:
             try:
-                r,c = self.ask()
-                hit = self.foe_board.map[r][c].strike()   # Используется метод точки на доске
+                r, c = self.ask()
+                hit = self.foe_board.map[r][c].strike()  # Используется метод точки на доске
             except (IndexError, ValueError):
                 pass
             except ShotException as e:
@@ -250,7 +251,8 @@ class Player:
 class AI(Player):
     # Класс игровой механики компьютера, переопределён ввод точек атаки
     def ask(self):
-        point2hit = random.choice(tuple(self.places2hit))   # Может ли быть прерывание IndexError из-за размера places2hit?
+        point2hit = random.choice(
+            tuple(self.places2hit))  # Может ли быть прерывание IndexError из-за размера places2hit?
         self.places2hit.discard(point2hit)  # Чтобы не стрелять два раза в одну точку
         return point2hit
 
@@ -258,20 +260,20 @@ class AI(Player):
 class User(Player):
     # Класс игровой механики игрока, переопределён ввод точек атаки
     def ask(self):
-        done=False
+        done = False
         while not done:
             try:
-                #f = random.choice('abcdef')+random.choice('123456')
                 r, c = random.choice(tuple(self.places2hit))
-                f='abcdef'[c]+'123456'[r]   # Это чтобы, стреляя по подсказкам, не попадать на уже битые точки ))
-                #answer = input('Введите номер поля (например, ' + f + '): ')
-                point2hit = self.foe_board.coord_in_map(f)#answer[:2])
+                f = 'abcdef'[c] + '123456'[r]  # Это чтобы, стреляя по подсказкам, не попадать на уже битые точки ))
+                answer = input('Введите номер поля (например, ' + f + '): ')
+                point2hit = self.foe_board.coord_in_map(answer[:2])
             except (IndexError, ValueError):
                 pass
             else:
-                done=True
+                done = True
                 self.places2hit.discard(point2hit)  # Игрок сам должен знать, куда он стрелял, это для подсказок
                 return point2hit
+
 
 # Теперь класс хода игры
 class Game:
@@ -305,24 +307,24 @@ class Game:
 
     def loop(self):  # Это цикл хода игры
         try:
-            self.user_board.printboard()     #self.printboards()
+            self.user_board.printboard()  # self.printboards()
             self.user_board.place_all_ships()  # auto=True # TODO - отменить авторазмещение после отработки игровой механики
-            #self.printboards()  #TODO - убрать после отработки игровой механики
+            # self.printboards()  #TODO - убрать после отработки игровой механики
             game_over = False
-            user_pass_now = False   # Переключает ход пользователя или оппонента?
+            user_pass_now = False  # Переключает ход пользователя или оппонента?
             while not game_over:
                 if user_pass_now:
-                    #print("ход пользователя")
+                    # print("ход пользователя")
                     if not self.user.strike():
                         user_pass_now = not user_pass_now
                 else:
-                    #print("ход ИИ")
+                    # print("ход ИИ")
                     if not self.ai.strike():
                         user_pass_now = not user_pass_now
                 self.printboards()
-                #user_pass_now = True   #TODO - для тестирования в режиме ходов только одной из сторон
-                #print('AI lives', self.ai_board.lives_all())
-                #print('user lives', self.user_board.lives_all())
+                # user_pass_now = True   #TODO - для тестирования в режиме ходов только одной из сторон
+                # print('AI lives', self.ai_board.lives_all())
+                # print('user lives', self.user_board.lives_all())
                 if not self.ai_board.lives_all():
                     print("Поздравляем, Вы выиграли!")
                     game_over = True
